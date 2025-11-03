@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Path Manager</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 40px;
+      }
+      input,
+      button {
+        margin: 5px;
+        padding: 6px 10px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-top: 15px;
+      }
+      th,
+      td {
+        border: 1px solid #ccc;
+        padding: 6px 10px;
+      }
+      th {
+        background: #f4f4f4;
+      }
+      tr.active {
+        background: #d2f3d2;
+      }
+      tr.active {
+        background-color: #d9fdd3;
+        transition: background-color 0.3s ease;
+      }
+      button {
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>📁 Quản lý đường dẫn</h1>
+
+    <div>
+      <input id="name" placeholder="Tên hiển thị" />
+      <input id="path" placeholder="Đường dẫn file hoặc folder" />
+      <button onclick="addPath()">➕ Thêm</button>
+
+      <div style="display: flex; align-items: center; gap: 10px">
+        <button onclick="savePaths()">💾 Lưu</button>
+        <span id="saveStatus" style="color: green">✅ Đã lưu</span>
+      </div>
+    </div>
+
+    <div style="margin-top: 10px">
+      <input type="file" id="jsonFile" accept=".json" />
+      <button onclick="importJSON()">📥 Import JSON</button>
+      <button onclick="exportJSON()">📤 Export JSON</button>
+    </div>
+
+    <table id="pathTable">
+      <thead>
+        <tr>
+          <th>Tên</th>
+          <th>Đường dẫn</th>
+          <th>🕓 Lần mở cuối</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <script src="script.js"></script>
+  </body>
+</html>
