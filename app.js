@@ -37,7 +37,7 @@ app.post("/api/open", (req, res) => {
   if (!fs.existsSync(filePath))
     return res.status(400).json({ error: "File not found" });
 
-  if (!activeFiles.includes(filePath)) activeFiles.push(filePath); // Thêm vào danh sách mở
+  if (!activeFiles.includes(filePath)) activeFiles.push(filePath);
   exec(`start "" "${filePath}"`);
   res.json({ ok: true });
 });
@@ -45,16 +45,27 @@ app.post("/api/open", (req, res) => {
 app.get("/api/is-open", async (req, res) => {
   const statusList = await Promise.all(
     activeFiles.map(async (file) => {
+      let filePath = path.normalize(file);
       try {
-        const fd = fs.openSync(file, "r+");
+        const fd = fs.openSync(Buffer.from(filePath, "utf8").toString(), "r+");
         fs.closeSync(fd);
+
         activeFiles = activeFiles.filter((f) => f !== file);
-        return { filePath: file.replaceAll("\\", "/"), isOpen: false };
+        return { filePath: filePath.replaceAll("\\", "/"), isOpen: false };
       } catch (err) {
-        return { filePath: file.replaceAll("\\", "/"), isOpen: true };
+        if (err.code === "EPERM" || err.code === "EBUSY") {
+          return { filePath: filePath.replaceAll("\\", "/"), isOpen: true };
+        } else if (err.code === "ENOENT") {
+          activeFiles = activeFiles.filter((f) => f !== file);
+          return { filePath: filePath.replaceAll("\\", "/"), isOpen: false };
+        } else {
+          console.error("Unexpected error:", err);
+          return { filePath: filePath.replaceAll("\\", "/"), isOpen: null };
+        }
       }
     })
   );
+
   res.json(statusList);
 });
 
