@@ -24,10 +24,15 @@ setInterval(async () => {
 
 function normalizePath(p) {
   if (!p) return "";
+
+  p = p.replace(/^['"]|['"]$/g, "");
+
   p = p.replaceAll("\\", "/");
+
   if (/^[A-Za-z]:[^/]/.test(p)) {
     p = p[0] + ":/" + p.slice(2);
   }
+
   return p;
 }
 
