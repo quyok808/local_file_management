@@ -59,49 +59,29 @@ app.post("/api/open", (req, res) => {
 app.get("/api/is-open", async (req, res) => {
   const statusList = await Promise.all(
     activeFiles.map(async (file) => {
+      let filePath = path.normalize(file);
       try {
-        const fd = fs.openSync(file, "r+");
+        const fd = fs.openSync(Buffer.from(filePath, "utf8").toString(), "r+");
         fs.closeSync(fd);
+
         activeFiles = activeFiles.filter((f) => f !== file);
-        return { filePath: file.replaceAll("\\", "/"), isOpen: false };
+        return { filePath: filePath.replaceAll("\\", "/"), isOpen: false };
       } catch (err) {
-        return { filePath: file.replaceAll("\\", "/"), isOpen: true };
+        if (err.code === "EPERM" || err.code === "EBUSY") {
+          return { filePath: filePath.replaceAll("\\", "/"), isOpen: true };
+        } else if (err.code === "ENOENT") {
+          activeFiles = activeFiles.filter((f) => f !== file);
+          return { filePath: filePath.replaceAll("\\", "/"), isOpen: false };
+        } else {
+          console.error("Unexpected error:", err);
+          return { filePath: filePath.replaceAll("\\", "/"), isOpen: null };
+        }
       }
     })
   );
+
   res.json(statusList);
 });
-
-// app.post("/api/import-json", upload.single("file"), (req, res) => {
-//   const filePath = req.file.path;
-//   try {
-//     let rawContent = fs.readFileSync(filePath, "utf-8").trim();
-
-//     if (rawContent.includes("\\") && !rawContent.includes("\\\\")) {
-//       rawContent = rawContent.replace(/\\/g, "\\\\");
-//     }
-
-//     const imported = JSON.parse(rawContent);
-
-//     if (!Array.isArray(imported))
-//       return res.status(400).json({ error: "Invalid JSON format" });
-
-//     const normalized = imported
-//       .map((p) => normalizePath(p))
-//       .filter((p) => p !== "");
-
-//     let existing = [];
-//     if (fs.existsSync(DATA_FILE))
-//       existing = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
-
-//     const merged = [...existing, ...normalized];
-//     fs.writeFileSync(DATA_FILE, JSON.stringify(merged, null, 2));
-//     fs.unlinkSync(filePath);
-//     res.json({ ok: true, added: normalized.length });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// });
 
 app.post("/api/import-json", upload.single("file"), (req, res) => {
   if (!req.file) {
@@ -113,7 +93,6 @@ app.post("/api/import-json", upload.single("file"), (req, res) => {
   try {
     let rawContent = fs.readFileSync(filePath, "utf-8").trim();
 
-    // Escape \ nếu bị JSON lỗi
     if (rawContent.includes("\\") && !rawContent.includes("\\\\")) {
       rawContent = rawContent.replace(/\\/g, "\\\\");
     }
@@ -124,7 +103,6 @@ app.post("/api/import-json", upload.single("file"), (req, res) => {
       return res.status(400).json({ error: "JSON must be an array" });
     }
 
-    // ✅ Chuẩn hoá tất cả item có field "path"
     const normalized = imported
       .map((item) => {
         if (item && typeof item === "object" && typeof item.path === "string") {
