@@ -8,6 +8,7 @@ const multer = require("multer");
 const app = express();
 const PORT = 2502;
 const DATA_FILE = path.resolve("./paths.json");
+const QR_DATA_FILE = path.resolve("./qr.json");
 
 app.use(cors());
 app.use(express.json());
@@ -126,6 +127,50 @@ app.post("/api/import-json", upload.single("file"), (req, res) => {
     fs.unlinkSync(filePath);
 
     res.json({ ok: true, added: normalized.length, total: merged.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+//============================================================================//
+app.get("/qr", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/qr.html"));
+});
+
+app.get("/api/qr", (req, res) => {
+  if (!fs.existsSync(QR_DATA_FILE)) return res.json([]);
+  const data = JSON.parse(fs.readFileSync(QR_DATA_FILE, "utf-8"));
+  res.json(data);
+});
+
+app.post("/api/qr", (req, res) => {
+  let list = Array.isArray(req.body) ? req.body : [];
+
+  fs.writeFileSync(QR_DATA_FILE, JSON.stringify(list, null, 2), "utf-8");
+  res.json({ ok: true });
+});
+
+app.post("/api/qr/import-json", upload.single("file"), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+  try {
+    const filePath = req.file.path;
+    const text = fs.readFileSync(filePath, "utf-8").trim();
+    const imported = JSON.parse(text);
+
+    if (!Array.isArray(imported))
+      return res.status(400).json({ error: "JSON must be an array" });
+
+    let existing = [];
+    if (fs.existsSync(QR_DATA_FILE)) {
+      existing = JSON.parse(fs.readFileSync(QR_DATA_FILE, "utf-8"));
+    }
+
+    const merged = [...existing, ...imported];
+
+    fs.writeFileSync(QR_DATA_FILE, JSON.stringify(merged, null, 2), "utf-8");
+    fs.unlinkSync(filePath);
+
+    res.json({ ok: true, added: imported.length, total: merged.length });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
