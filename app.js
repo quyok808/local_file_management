@@ -4,11 +4,14 @@ const path = require("path");
 const { exec } = require("child_process");
 const cors = require("cors");
 const multer = require("multer");
+const dotenv = require("dotenv");
+
+dotenv.config();
 
 const app = express();
 const PORT = 2502;
-const DATA_FILE = path.resolve("./paths.json");
-const QR_DATA_FILE = path.resolve("./qr.json");
+const DATA_FILE = process.env.FILE_PATH;
+const QR_DATA_FILE = process.env.QR_PATH;
 
 app.use(cors());
 app.use(express.json());
